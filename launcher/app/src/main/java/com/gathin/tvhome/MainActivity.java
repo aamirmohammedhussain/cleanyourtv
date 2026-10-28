@@ -436,6 +436,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // process runs (Skyworth HP4609 stick, C3.2.5). Watched once per process, not per activity; same grant.
         keepKeyServices = !cfg.keepKeyServices.isEmpty();
         if (keepKeyServices) KeepKeyServices.start(this, cfg.keepKeyServices);
+        // adb_wifi_on_boot (config.xml, a theme or its Launcher settings row): Android switches Wireless debugging
+        // off at every boot; the first Home of a boot turns it back on, once. Same grant.
+        if (cfg.adbWifiOnBoot) AdbWifiOnBoot.apply(this);
         settingsRevision = settingsRevision();
         applyViewInputsHandler(cfg.handleViewInputs);
         settingsKeycodes = cfg.settingsKeycodes;
@@ -609,10 +612,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 // rows_below_dock leaves visible ends there; nudging it up was the bug). A row that has to scroll
                 // in still stops at the padding line, clear of the screen edge, as before.
                 int limitBottom = getHeight() - getPaddingBottom();
-                int dy;
-                if (top < 0) dy = top;
-                else if (bottom <= getHeight()) dy = 0;
-                else dy = Math.min(top, bottom - limitBottom);
+                // grid_top: in a plain grid a row scrolling up stops at the gap left under the header, so Up back to
+                // the first row puts it where it started; the grid's top edge (0) everywhere else, as before.
+                int limitTop = dockRow ? 0 : AppAdapter.plainGridKeylinePx(getPaddingTop(), density);
+                int dy = GridNavigation.verticalScroll(top, bottom, getHeight(), limitTop, limitBottom);
                 if (dy == 0) return false;
                 if (immediate || reducedMotion || !animations) parent.scrollBy(0, dy);
                 else parent.smoothScrollBy(0, dy);
@@ -669,8 +672,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
             // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
             if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
-            // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
-            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
+            // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass, plus
+            // grid_top's gap under the header.
+            if (!MainActivity.this.dockRow) want = AppAdapter.plainGridTopPx(cfg.gridTop, density);
             // A single row never shows the names under its tiles (the title above the row names the app), so the
             // 7dp gap and 22dp label item_app.xml keeps for them would only lift the row: sit it that much lower.
             if (singleRow && !cfg.alwaysShowNames) want += (int) (29 * density);

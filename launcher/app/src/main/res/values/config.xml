@@ -180,6 +180,15 @@
          "keep_key_services": ["HomeKeyService", "InputKeyService"] in a theme's config.json. Leave empty to omit. -->
     <string-array name="keep_key_services" translatable="false">
     </string-array>
+    <!-- Android 11 and later switch Wireless debugging off at every boot. true: the first Home of each boot turns it
+         back on, once, so switching it off by hand holds until the next restart. This keeps a debug port open on the
+         network (TLS, only hosts already paired and authorised get in): meant for the weeks a TV is being set up,
+         not for good. Android may still ask "Allow wireless debugging on this network?" on a network not marked
+         always allow, and it needs Wi-Fi. Needs WRITE_SECURE_SETTINGS (RESTORE_KEY_SERVICES=1 at install). The
+         "Wireless debugging at startup" row in Launcher settings, shown only with that grant, switches it on the TV;
+         its choice wins over this and the theme, survives a theme push and is cleared by Follow theme. Off never
+         switches debugging off; it only stops turning it on. Also "adb_wifi_on_boot": true in a theme. -->
+    <bool name="adb_wifi_on_boot">false</bool>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1
          build-and-install.sh; KEYCODE_TV always does). For buttons only a disabled app answered: the Xiaomi
@@ -287,6 +296,11 @@
          shelf above it. false makes the dock apps simply the first tiles of one plain grid (still in dock_apps
          order, no empty slots), with names under every tile and the glow behind every focused tile. -->
     <bool name="dock_row">true</bool>
+    <!-- With dock_row false: dp of extra gap above the first row of the plain grid, 0 to 200, on top of the 12dp kept
+         for the focus zoom. On the Wanbo X5 Pro projector the first row sat tight under the clock and the pills
+         while two rows left half the screen empty. A row scrolling back up stops at the same gap. Ignored with
+         dock_row. Tiles keep their size. Can also be set with "grid_top": 40 in a theme's config.json. -->
+    <integer name="grid_top">0</integer>
     <!-- Inputs, Wi-Fi and Settings folded into one round gear at the top right, like Google TV: OK drops a menu
          with the three, hold OK keeps the launcher menu. Off by default; a theme can set "top_menu": true. -->
     <bool name="top_menu">false</bool>

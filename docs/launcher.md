@@ -61,6 +61,10 @@ The launcher's own page has these rows, top to bottom:
   transitions; they may use more memory) once animations are on.
 - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
   time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
+- **Wireless debugging at startup**, only when the launcher holds `WRITE_SECURE_SETTINGS`
+  (`RESTORE_KEY_SERVICES=1` at install): On turns Wireless debugging back on once after every restart, from
+  the next one; Off stops that without switching debugging off. It wins over `adb_wifi_on_boot` in
+  `config.xml` or the theme, and a theme push leaves it; Follow theme clears it.
 - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
   clears them too.
 - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
