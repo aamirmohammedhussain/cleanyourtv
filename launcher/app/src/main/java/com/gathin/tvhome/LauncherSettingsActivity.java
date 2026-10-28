@@ -140,9 +140,9 @@ public final class LauncherSettingsActivity extends Activity {
         }
         adbWifiChoice = findViewById(R.id.adbWifiChoice);
         adbWifiOnBoot = config.adbWifiOnBoot;
-        // Only where the installer granted WRITE_SECURE_SETTINGS, as Open on start shows only with its key: without
-        // the grant the switch could do nothing.
-        if (AdbWifiOnBoot.permitted(this)) {
+        // Only on Android 11 or later and where the installer granted WRITE_SECURE_SETTINGS, as Open on start shows
+        // only with its key: anywhere else the switch could do nothing.
+        if (AdbWifiOnBoot.available(this)) {
             adbWifiChoice.setVisibility(View.VISIBLE);
             findViewById(R.id.adbWifiHint).setVisibility(View.VISIBLE);
             adbWifiChoice.setOnClickListener(v -> {
@@ -161,6 +161,9 @@ public final class LauncherSettingsActivity extends Activity {
                     .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).remove(Config.ADB_WIFI_ON_BOOT_KEY).commit();
             Config current = Config.load(this);
             adbWifiOnBoot = current.adbWifiOnBoot;
+            // On again from config.xml or the theme: from the next restart, as the row promises, not at the rebuild
+            // changed() is about to cause.
+            if (adbWifiOnBoot) AdbWifiOnBoot.skipThisBoot(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
             dockOpacity = current.dockOpacity;

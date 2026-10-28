@@ -24,11 +24,16 @@ public class AdbWifiOnBootTest {
 
     @Test public void itWaitsForWifiForTwoMinutesAtMost() {
         // Home starts about 2 s before Wi-Fi on the Wanbo X5 Pro's stick; Android undoes a write made before it.
-        assertTrue(AdbWifiOnBoot.keepWaiting(false, 0));
-        assertTrue(AdbWifiOnBoot.keepWaiting(false, AdbWifiOnBoot.WIFI_WAIT_MS - AdbWifiOnBoot.POLL_MS));
-        assertFalse(AdbWifiOnBoot.keepWaiting(false, AdbWifiOnBoot.WIFI_WAIT_MS));
-        assertFalse(AdbWifiOnBoot.keepWaiting(true, 0));
+        assertTrue(AdbWifiOnBoot.keepWaiting(false, false, 0));
+        assertTrue(AdbWifiOnBoot.keepWaiting(false, false, AdbWifiOnBoot.WIFI_WAIT_MS - AdbWifiOnBoot.POLL_MS));
+        assertFalse(AdbWifiOnBoot.keepWaiting(false, false, AdbWifiOnBoot.WIFI_WAIT_MS));
+        assertFalse(AdbWifiOnBoot.keepWaiting(true, false, 0));
         assertEquals(120_000L, AdbWifiOnBoot.WIFI_WAIT_MS);
+    }
+
+    @Test public void switchingTheRowOffEndsAWaitAlreadyRunning() {
+        assertFalse(AdbWifiOnBoot.keepWaiting(false, true, 0));
+        assertFalse(AdbWifiOnBoot.keepWaiting(false, true, AdbWifiOnBoot.POLL_MS));
     }
 
     @Test public void aWriteThatHeldIsTheEnd() {
