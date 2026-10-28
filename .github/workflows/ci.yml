@@ -63,6 +63,12 @@ jobs:
         with:
           packages: platforms;android-34 build-tools;34.0.0
       - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+      # Fork only: sign with a fixed key from a repo secret, so a newer build installs over the last one.
+      - name: Stable signing key
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_B64" ]; then mkdir -p ~/.android && printf %s "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore; fi
       - name: Unit tests, lint and release build
         working-directory: launcher
         run: |
