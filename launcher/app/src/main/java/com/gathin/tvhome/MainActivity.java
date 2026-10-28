@@ -237,6 +237,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config settings_key_keycodes / settings_key_panel, so the Settings button works on Home without HomeKeyService. */
     private int[] settingsKeycodes = new int[0];
     private boolean settingsKeyPanel;
+    /** config keep_key_services names a helper: KeepKeyServices checks the accessibility list again on resume. */
+    private boolean keepKeyServices;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     private boolean reducedMotion;
     /** config.xml dock_row: the first row is a separate dock (band, parked low, top shelf) rather than plain grid. */
@@ -430,6 +432,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
         if (cfg.restoreKeyServices) ServiceRepair.restore(this);
+        // keep_key_services: put the named helpers back whenever the firmware empties the accessibility list while this
+        // process runs (Skyworth HP4609 stick, C3.2.5). Watched once per process, not per activity; same grant.
+        keepKeyServices = !cfg.keepKeyServices.isEmpty();
+        if (keepKeyServices) KeepKeyServices.start(this, cfg.keepKeyServices);
         settingsRevision = settingsRevision();
         applyViewInputsHandler(cfg.handleViewInputs);
         settingsKeycodes = cfg.settingsKeycodes;
@@ -1014,6 +1020,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         restartIdleClock();
         promptsPaused = false;
+        if (keepKeyServices) KeepKeyServices.check();   // keep_key_services: one more look at the list
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
             case REBUILD:

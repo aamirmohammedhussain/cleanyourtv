@@ -168,6 +168,18 @@
          Settings stays off. Needs WRITE_SECURE_SETTINGS, which build-and-install grants with RESTORE_KEY_SERVICES=1
          (-RestoreKeyServices on Windows). Can also be set with "restore_key_services": true in a theme's config.json. -->
     <bool name="restore_key_services">false</bool>
+    <!-- Remote helpers Home keeps on the accessibility list for as long as its process runs, by class name:
+         HomeKeyService, InputKeyService (any other name is ignored). For firmware that rewrites the list while Home
+         runs: on the Skyworth Google TV stick in a Wanbo X5 Pro projector (HP4609, Google TV 14, firmware C3.2.5),
+         com.sdt.projector.observer empties it about 4 s after every boot, and the Settings gear and the other helper
+         keys stop until the helpers are enabled again over ADB. About a second after such a change Home puts a missing
+         helper back, other apps' services left in place, at most 5 times in 10 minutes. Different from
+         restore_key_services, which puts the helpers back once, when Home starts after a force stop. A helper named
+         here comes back even when turned off in Settings while Home runs: take it out of this list first. Needs
+         WRITE_SECURE_SETTINGS, granted by RESTORE_KEY_SERVICES=1 (-RestoreKeyServices on Windows). Also
+         "keep_key_services": ["HomeKeyService", "InputKeyService"] in a theme's config.json. Leave empty to omit. -->
+    <string-array name="keep_key_services" translatable="false">
+    </string-array>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1
          build-and-install.sh; KEYCODE_TV always does). For buttons only a disabled app answered: the Xiaomi

@@ -35,6 +35,13 @@
 #   INPUT_KEY_SERVICE=1 with `settings_key_keycodes` `[83]` and `app_keys` for `265`, `266`, `138` and
 #   `136` restores all five buttons. The projector's physical autofocus and keystone buttons are handled
 #   by `com.sdt.projector.observer` and keep working without launcherx.
+# - Older firmware C3.2.5 (UKG3.250518.001 C3.2.5_20260104, another unit): about 4 s after Home starts
+#   at every boot, `com.sdt.projector.observer` (kept, see below) empties the accessibility services list,
+#   both key helpers unbind and the Settings gear stops until they are enabled again over ADB. On that
+#   build set `keep_key_services` to `["HomeKeyService", "InputKeyService"]` in the launcher's config.xml
+#   or a theme, with RESTORE_KEY_SERVICES=1 at install; `restore_key_services` does not cover it
+#   (docs/TROUBLESHOOTING.md, "The helpers drop off the list a few seconds after every boot").
+#   Not seen on C3.3.5.
 #
 # Kept on purpose: com.sdt.projector.observer (projector accessibility service, autofocus and keystone),
 # com.mft.rcupair (remote pairing), com.sdt.globalkey (remote hot keys), com.mft.frontpanelledsservice,

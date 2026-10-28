@@ -916,6 +916,25 @@ running back on the list the next time it starts; a helper turned off in Setting
   tools/tv.py "settings put secure enabled_accessibility_services com.gathin.tvhome/.InputKeyService; sleep 1; settings put secure enabled_accessibility_services ''; sleep 1; settings put secure enabled_accessibility_services com.gathin.tvhome/.InputKeyService"
   ```
 
+- **The helpers drop off the list a few seconds after every boot, with no force stop.** A system app
+  rewrites `enabled_accessibility_services` while Home runs, and Android then sets `accessibility_enabled`
+  to `0`. `restore_key_services` does not help here: Android unbinds the helpers normally, which drops their
+  `ServiceRepair` record, and that repair only runs when Home starts. Seen on the Skyworth Google TV stick
+  in a Wanbo X5 Pro projector (`HP4609-Skyworth`, Google TV 14, `UKG3.250518.001 C3.2.5_20260104`): about
+  4 s after Home started, `com.sdt.projector.observer` wrote the list empty, and the Settings gear
+  (`settings_key_keycodes` `[83]`) stopped until the helpers were enabled again over ADB. Units on `C3.3.5`
+  did not report it. `dumpsys settings` names the app that last wrote the list; there it read
+  `name:enabled_accessibility_services pkg:com.sdt.projector.observer value:`. On such a set, name the
+  helpers in `keep_key_services` (`config.xml` or a theme, e.g. `["HomeKeyService", "InputKeyService"]`),
+  with `WRITE_SECURE_SETTINGS` granted as above: while Home's process runs, a helper that leaves the list is
+  put back at its end about a second later, other apps' services left in place, at most 5 times in 10
+  minutes. Each put-back is one `TvHome.KeepKeys` line in `logcat`:
+
+  ```sh
+  tools/tv.py "dumpsys settings | grep 'name:enabled_accessibility_services'"
+  tools/tv.py 'logcat -d -s TvHome.KeepKeys:I'
+  ```
+
 - **Enabled** means the component is in that user's colon-separated list (the class may be written in
   full, `com.gathin.tvhome/com.gathin.tvhome.HomeKeyService`). Match the whole component.
 - **Bound** means it appears under that user's `Bound services` section of the dump (`services` on older
