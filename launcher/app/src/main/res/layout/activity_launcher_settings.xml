@@ -118,6 +118,22 @@
             android:visibility="gone" />
 
         <TextView
+            android:id="@+id/adbWifiChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="28dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/adbWifiHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/adb_wifi_on_boot_hint"
+            android:textColor="#FFACB8C1"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/followThemeChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="18dp"

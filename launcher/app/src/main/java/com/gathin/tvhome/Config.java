@@ -43,6 +43,8 @@ final class Config {
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    /** Wireless debugging at startup, as switched in Launcher settings; wins over config.xml and the theme. */
+    static final String ADB_WIFI_ON_BOOT_KEY = "adb_wifi_on_boot";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -88,6 +90,8 @@ final class Config {
     final boolean animations;
     final boolean advancedEffects;
     final int rowsBelowDock;
+    /** dp added above the first row of a plain grid, 0 to 200 (config.xml grid_top); dock_row ignores it. */
+    final int gridTop;
     final boolean shamsiDate;
     /** Lunisolar date under the date (config.json lunar_date), computed for lunarUtcOffset hours east of UTC (-1: by locale). */
     final boolean lunarDate;
@@ -186,6 +190,8 @@ final class Config {
     final boolean restoreKeyServices;
     /** Helpers Home keeps on the accessibility list while its process runs (keep_key_services; KeepKeyServices); empty is off. */
     final List<String> keepKeyServices;
+    /** Home turns Wireless debugging back on once per boot (adb_wifi_on_boot; AdbWifiOnBoot). */
+    final boolean adbWifiOnBoot;
     /** Whether themes may show a wallpaper (config.json, wallpaper). */
     final boolean wallpaperEnabled;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
@@ -274,14 +280,14 @@ final class Config {
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, String gameDay, boolean appLibrary, boolean appLibrarySelection, boolean libraryOkOpens, boolean uniformTiles, int backgroundColor, int skyIntensity,
-                   int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, List<String> keepKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
+                   int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, List<String> keepKeyServices, boolean adbWifiOnBoot, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly,
-                   int openOnStartNetworkWait) {
+                   int openOnStartNetworkWait, int gridTop) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -308,6 +314,7 @@ final class Config {
         this.inputUriScheme = inputUriScheme;
         this.columns = columns;
         this.rowsBelowDock = rowsBelowDock;
+        this.gridTop = gridTop;
         this.animations = animations;
         this.advancedEffects = advancedEffects;
         this.shamsiDate = shamsiDate;
@@ -350,6 +357,7 @@ final class Config {
         this.settingsKeyPanel = settingsKeyPanel;
         this.restoreKeyServices = restoreKeyServices;
         this.keepKeyServices = Collections.unmodifiableList(keepKeyServices);
+        this.adbWifiOnBoot = adbWifiOnBoot;
         this.wallpaperEnabled = wallpaperEnabled;
         this.wallpaper = wallpaper;
         this.wallpapers = Collections.unmodifiableList(wallpapers);
@@ -446,6 +454,7 @@ final class Config {
         boolean bootToLiveTv = res.getBoolean(R.bool.boot_to_live_tv);
         boolean openOnStartChoice = res.getBoolean(R.bool.open_on_start_choice);
         int openOnStartNetworkWait = res.getInteger(R.integer.open_on_start_network_wait);
+        int gridTop = res.getInteger(R.integer.grid_top);
         boolean dockTitle = res.getBoolean(R.bool.dock_title);
         boolean dockRow = res.getBoolean(R.bool.dock_row);
         boolean topMenu = res.getBoolean(R.bool.top_menu);
@@ -477,6 +486,7 @@ final class Config {
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         boolean restoreKeyServices = res.getBoolean(R.bool.restore_key_services);
         List<String> keepKeyServices = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.keep_key_services)));
+        boolean adbWifiOnBoot = res.getBoolean(R.bool.adb_wifi_on_boot);
         int[] inputKeycodes = res.getIntArray(R.array.input_key_keycodes);
         boolean handleViewInputs = res.getBoolean(R.bool.handle_view_inputs);
         List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
@@ -555,6 +565,7 @@ final class Config {
             bootToLiveTv = bool(json, "boot_to_live_tv", bootToLiveTv);
             openOnStartChoice = bool(json, "open_on_start_choice", openOnStartChoice);
             openOnStartNetworkWait = integer(json, "open_on_start_network_wait", openOnStartNetworkWait, 0, 600);
+            gridTop = integer(json, "grid_top", gridTop, 0, 200);
             dockTitle = bool(json, "dock_title", dockTitle);
             dockRow = bool(json, "dock_row", dockRow);
             topMenu = bool(json, "top_menu", topMenu);
@@ -586,6 +597,7 @@ final class Config {
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             restoreKeyServices = bool(json, "restore_key_services", restoreKeyServices);
             keepKeyServices = stringList(json, "keep_key_services", keepKeyServices);
+            adbWifiOnBoot = bool(json, "adb_wifi_on_boot", adbWifiOnBoot);
             inputKeycodes = intArray(json, "input_key_keycodes", inputKeycodes);
             handleViewInputs = bool(json, "handle_view_inputs", handleViewInputs);
             appKeys = stringList(json, "app_keys", appKeys);
@@ -640,6 +652,8 @@ final class Config {
         if (chosenRows >= 0 && chosenRows <= 3) rowsBelow = chosenRows;
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
+        // Like the Open on start pick, a theme push leaves this one; Follow theme clears it.
+        adbWifiOnBoot = choices.getBoolean(ADB_WIFI_ON_BOOT_KEY, adbWifiOnBoot);
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
@@ -679,7 +693,7 @@ final class Config {
                 openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
                 iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot,
                 vpn, homeSettings, showStats, gameDay, library, librarySelection, libraryOkOpens, uniformTiles, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, keepKeyServices, wallpaperEnabled, wallpaper,
+                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, keepKeyServices, adbWifiOnBoot, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied, festival, inputKeycodes, appKeys, stockHomeRedirect,
                 json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
                 Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding,
@@ -687,7 +701,7 @@ final class Config {
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly,
-                Math.max(0, Math.min(600, openOnStartNetworkWait)));
+                Math.max(0, Math.min(600, openOnStartNetworkWait)), Math.max(0, Math.min(200, gridTop)));
     }
 
     /**

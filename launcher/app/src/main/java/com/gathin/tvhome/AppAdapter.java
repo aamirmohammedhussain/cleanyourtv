@@ -147,6 +147,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static final float TOP_ROOM_DP = 12;
 
     /**
+     * dock_row false: the grid's top padding, TOP_ROOM_DP plus grid_top dp of gap under the header (the clock and the
+     * pills). On the Wanbo X5 Pro projector two rows sat tight under the header with half the screen empty below.
+     */
+    static int plainGridTopPx(int gridTopDp, float density) {
+        return (int) ((TOP_ROOM_DP + gridTopDp) * density);
+    }
+
+    /** The line a row scrolling up stops at in a plain grid: grid_top's gap, 0 (the grid's edge) without it. */
+    static int plainGridKeylinePx(int paddingTopPx, float density) {
+        return Math.max(0, paddingTopPx - (int) (TOP_ROOM_DP * density));
+    }
+
+    /**
      * Tile width that fits the columns across and, with rows_below_dock > 0, the dock (with its title above it,
      * if shown) plus that many rows down the grid's height; the smaller wins. With rows_below_dock = 0, or before
      * the grid has a height, only the width counts, as before. Without this, 2 or 3 rows below the dock did not

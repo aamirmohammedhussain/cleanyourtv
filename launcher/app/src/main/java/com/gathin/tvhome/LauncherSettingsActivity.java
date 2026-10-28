@@ -37,11 +37,14 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView advancedChoice;
     private TextView followThemeChoice;
     private TextView openOnStartChoice;
+    private TextView adbWifiChoice;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
     private boolean animations;
     private boolean advancedEffects;
+    /** adb_wifi_on_boot as Config read it: the on-TV choice, or config.xml and the theme's when there is none. */
+    private boolean adbWifiOnBoot;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -135,13 +138,29 @@ public final class LauncherSettingsActivity extends Activity {
             openOnStartChoice.setVisibility(View.VISIBLE);
             openOnStartChoice.setOnClickListener(v -> showOpenOnStartPicker());
         }
+        adbWifiChoice = findViewById(R.id.adbWifiChoice);
+        adbWifiOnBoot = config.adbWifiOnBoot;
+        // Only where the installer granted WRITE_SECURE_SETTINGS, as Open on start shows only with its key: without
+        // the grant the switch could do nothing.
+        if (AdbWifiOnBoot.permitted(this)) {
+            adbWifiChoice.setVisibility(View.VISIBLE);
+            findViewById(R.id.adbWifiHint).setVisibility(View.VISIBLE);
+            adbWifiChoice.setOnClickListener(v -> {
+                adbWifiOnBoot = !adbWifiOnBoot;
+                // From the next boot, as an Open on start pick; Off leaves Wireless debugging as it is now.
+                if (adbWifiOnBoot) AdbWifiOnBoot.skipThisBoot(this);
+                choices.edit().putBoolean(Config.ADB_WIFI_ON_BOOT_KEY, adbWifiOnBoot).apply();
+                refresh();
+            });
+        }
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).remove(Config.ADB_WIFI_ON_BOOT_KEY).commit();
             Config current = Config.load(this);
+            adbWifiOnBoot = current.adbWifiOnBoot;
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
             dockOpacity = current.dockOpacity;
@@ -298,6 +317,8 @@ public final class LauncherSettingsActivity extends Activity {
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
+        adbWifiChoice.setText(getString(R.string.adb_wifi_on_boot_state,
+                getString(adbWifiOnBoot ? R.string.on : R.string.off)));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
@@ -305,7 +326,7 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(OpenOnStart.KEY);
+                || choices.contains(OpenOnStart.KEY) || choices.contains(Config.ADB_WIFI_ON_BOOT_KEY);
     }
 
     private void open(Intent intent) {
