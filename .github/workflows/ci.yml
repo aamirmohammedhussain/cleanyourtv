@@ -79,8 +79,8 @@ jobs:
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
           test "$size" -lt 589824 || { echo "APK is over 576 KB; the launcher targets 1 GB TVs, keep it small"; exit 1; }
-      # The APK is signed with this runner's debug key, new on every run: a later run's APK won't install over it
-      # (signature mismatch) without uninstalling first.
+      # Signed with the runner's debug key, new on every run (a later run's APK won't install over it without an
+      # uninstall), unless the fork's DEBUG_KEYSTORE_B64 secret supplies a fixed key (Stable signing key step).
       - name: Keep the release APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
