@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Run by hand (Actions → CI → Run workflow), e.g. in a fork, to get a launcher APK without a local Android toolchain.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -71,3 +73,12 @@ jobs:
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           echo "release APK: $((size / 1024)) KB"
           test "$size" -lt 589824 || { echo "APK is over 576 KB; the launcher targets 1 GB TVs, keep it small"; exit 1; }
+      # The APK is signed with this runner's debug key, new on every run: a later run's APK won't install over it
+      # (signature mismatch) without uninstalling first.
+      - name: Keep the release APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tvhome-${{ github.sha }}
+          path: launcher/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
+          if-no-files-found: error
