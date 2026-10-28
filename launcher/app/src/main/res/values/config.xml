@@ -173,7 +173,8 @@
          runs: on the Skyworth Google TV stick in a Wanbo X5 Pro projector (HP4609, Google TV 14, firmware C3.2.5),
          com.sdt.projector.observer empties it about 4 s after every boot, and the Settings gear and the other helper
          keys stop until the helpers are enabled again over ADB. About a second after such a change Home puts a missing
-         helper back, other apps' services left in place, at most 5 times in 10 minutes. Different from
+         helper back, other apps' services left in place, writing only over the list it read. At most 5 put-backs in
+         any 10 minutes: one more pauses it for 30 minutes, after which it starts counting again. Different from
          restore_key_services, which puts the helpers back once, when Home starts after a force stop. A helper named
          here comes back even when turned off in Settings while Home runs: take it out of this list first. Needs
          WRITE_SECURE_SETTINGS, granted by RESTORE_KEY_SERVICES=1 (-RestoreKeyServices on Windows). Also
@@ -181,13 +182,16 @@
     <string-array name="keep_key_services" translatable="false">
     </string-array>
     <!-- Android 11 and later switch Wireless debugging off at every boot. true: the first Home of each boot turns it
-         back on, once, so switching it off by hand holds until the next restart. This keeps a debug port open on the
-         network (TLS, only hosts already paired and authorised get in): meant for the weeks a TV is being set up,
-         not for good. Android may still ask "Allow wireless debugging on this network?" on a network not marked
-         always allow, and it needs Wi-Fi. Needs WRITE_SECURE_SETTINGS (RESTORE_KEY_SERVICES=1 at install). The
-         "Wireless debugging at startup" row in Launcher settings, shown only with that grant, switches it on the TV;
-         its choice wins over this and the theme, survives a theme push and is cleared by Follow theme. Off never
-         switches debugging off; it only stops turning it on. Also "adb_wifi_on_boot": true in a theme. -->
+         back on, once, so switching it off by hand holds until the next restart. It waits for Wi-Fi (up to 2 minutes)
+         and checks 3 s after each write, 3 tries in all: only a reset within those 3 s is retried, not a later one
+         (a Wi-Fi roam), and a boot whose Home is killed during the wait is skipped. This is Wireless debugging (TLS,
+         a random port, only hosts already paired and authorised get in), not adb tcpip 5555, but it still keeps a
+         debug port open on the network: meant for the weeks a TV is being set up, not for good. Android may still ask
+         "Allow wireless debugging on this network?" on a network not marked always allow. Android 11 and later only;
+         needs WRITE_SECURE_SETTINGS (RESTORE_KEY_SERVICES=1 at install). The "Wireless debugging at startup" row in
+         Launcher settings, shown only then, switches it on the TV; its choice wins over this and the theme, survives
+         a theme push and is cleared by Follow theme. Off never switches debugging off; it only stops turning it on,
+         from that moment. Also "adb_wifi_on_boot": true in a theme. -->
     <bool name="adb_wifi_on_boot">false</bool>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1

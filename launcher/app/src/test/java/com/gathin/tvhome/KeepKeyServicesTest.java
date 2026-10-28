@@ -77,39 +77,65 @@ public class KeepKeyServicesTest {
                 Collections.singletonList(HOME)).isEmpty());
     }
 
-    @Test public void fiveReaddsInTenMinutesThenNoMore() {
-        KeepKeyServices.Budget budget = new KeepKeyServices.Budget(5, 10 * MINUTE);
-        for (int i = 0; i < 5; i++) assertTrue(budget.take(i * MINUTE));
-        assertFalse(budget.spent());
-        assertFalse(budget.take(5 * MINUTE));
-        assertTrue(budget.spent());
+    private static KeepKeyServices.Budget budget() {
+        return new KeepKeyServices.Budget(5, 10 * MINUTE, 30 * MINUTE);
     }
 
-    @Test public void onceStoppedItStaysStopped() {
-        KeepKeyServices.Budget budget = new KeepKeyServices.Budget(5, 10 * MINUTE);
+    @Test public void fiveReaddsInTenMinutesThenAPause() {
+        KeepKeyServices.Budget budget = budget();
+        for (int i = 0; i < 5; i++) assertTrue(budget.take(i * MINUTE));
+        assertFalse(budget.pausedAt(5 * MINUTE));
+        assertFalse(budget.take(5 * MINUTE));
+        assertTrue(budget.pausedAt(5 * MINUTE));
+    }
+
+    @Test public void nothingIsAllowedDuringThePause() {
+        KeepKeyServices.Budget budget = budget();
+        for (int i = 0; i < 5; i++) budget.take(0);
+        assertFalse(budget.take(0));                    // starts the pause
+        assertFalse(budget.take(MINUTE));
+        assertFalse(budget.take(30 * MINUTE - 1));
+        assertTrue(budget.pausedAt(30 * MINUTE - 1));
+    }
+
+    @Test public void afterThePauseItStartsAgainWithAFreshWindow() {
+        // A Home process that lives for days must still repair a later change.
+        KeepKeyServices.Budget budget = budget();
         for (int i = 0; i < 5; i++) budget.take(0);
         assertFalse(budget.take(0));
-        assertFalse(budget.take(60 * MINUTE));
-        assertFalse(budget.take(24 * 60 * MINUTE));
+        assertFalse(budget.pausedAt(30 * MINUTE));
+        for (int i = 0; i < 5; i++) assertTrue(budget.take(30 * MINUTE + i));
+        assertFalse(budget.take(30 * MINUTE + 5));      // and the limit holds again
+        assertTrue(budget.pausedAt(31 * MINUTE));
+        assertTrue(budget.take(24 * 60 * MINUTE));      // a day later
+    }
+
+    @Test public void aFightStaysBounded() {
+        // Firmware that clears the list every second for a day: never more than 5 per 10 minutes, nor per pause.
+        KeepKeyServices.Budget budget = budget();
+        int allowed = 0;
+        for (long t = 0; t < 24 * 60 * MINUTE; t += 1000) if (budget.take(t)) allowed++;
+        assertEquals(5 * 24 * 60 / 30, allowed);       // one burst of 5 per 30-minute pause
     }
 
     @Test public void aReaddOlderThanTheWindowNoLongerCounts() {
-        KeepKeyServices.Budget budget = new KeepKeyServices.Budget(5, 10 * MINUTE);
+        KeepKeyServices.Budget budget = budget();
         for (int i = 0; i < 5; i++) assertTrue(budget.take(i * MINUTE));
         assertTrue(budget.take(10 * MINUTE));          // the one at 0 has left the window
         assertFalse(budget.take(10 * MINUTE + 30_000));   // 1, 2, 3, 4 and 10 are still in it
     }
 
     @Test public void readdsSpreadOutKeepGoing() {
-        KeepKeyServices.Budget budget = new KeepKeyServices.Budget(5, 10 * MINUTE);
+        KeepKeyServices.Budget budget = budget();
         for (int i = 0; i < 50; i++) assertTrue(budget.take(i * 3 * MINUTE));
-        assertFalse(budget.spent());
+        assertFalse(budget.pausedAt(50 * 3 * MINUTE));
     }
 
     // config.xml, themes/README.md and docs/TROUBLESHOOTING.md promise these to the owner.
     @Test public void theSwitchUsesFiveInTenMinutes() {
         assertEquals(5, KeepKeyServices.MAX_READDS);
         assertEquals(10 * MINUTE, KeepKeyServices.WINDOW_MS);
+        assertEquals(30 * MINUTE, KeepKeyServices.PAUSE_MS);
         assertEquals(Arrays.asList("HomeKeyService", "InputKeyService"), KeepKeyServices.HELPERS);
     }
 }

@@ -95,7 +95,7 @@ final class ServiceRepair {
     }
 
     /** Writes the enabled list only while it still reads {@code expected}; an absent list counts as empty. */
-    private static boolean replaceList(ContentResolver cr, String expected, String updated) {
+    static boolean replaceList(ContentResolver cr, String expected, String updated) {
         String now = Settings.Secure.getString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         return Objects.equals(now == null ? "" : now, expected == null ? "" : expected)
                 && Settings.Secure.putString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, updated);

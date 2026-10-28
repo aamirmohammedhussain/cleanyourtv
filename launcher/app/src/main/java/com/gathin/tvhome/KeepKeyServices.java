@@ -29,10 +29,13 @@ import java.util.List;
  *
  * A ContentObserver on both settings, registered once per process on the application context, waits until they
  * have been still for a second (the firmware's write and Android's flag write are one change), then puts a missing
- * helper back at the end of the list, every other entry left as it was, and sets accessibility_enabled. The change
- * our own write causes finds nothing missing and ends there. At most {@link #MAX_READDS} re-adds in any
- * {@link #WINDOW_MS}: past that the firmware wins until the next process start, so a fight can never loop. Needs
- * WRITE_SECURE_SETTINGS (RESTORE_KEY_SERVICES=1 at install); without it, or with the list empty, nothing is watched.
+ * helper back at the end of the list, every other entry left as it was, and sets accessibility_enabled. It writes only
+ * while the list still reads what it read (ServiceRepair.replaceList), so a write the firmware makes meanwhile is not
+ * overwritten; that write calls the observer again. The change our own write causes finds nothing missing and ends
+ * there. At most {@link #MAX_READDS} re-adds in any {@link #WINDOW_MS}: one more within it pauses the repair for
+ * {@link #PAUSE_MS}, then it starts again with a fresh window, so a fight with the firmware stays bounded however long
+ * Home runs, and a process that lives for days still repairs a later change. Needs WRITE_SECURE_SETTINGS
+ * (RESTORE_KEY_SERVICES=1 at install); without it, or with the list empty, nothing is watched.
  */
 final class KeepKeyServices {
     private static final String TAG = "TvHome.KeepKeys";
@@ -42,6 +45,7 @@ final class KeepKeyServices {
     static final long SETTLE_MS = 1000;
     static final int MAX_READDS = 5;
     static final long WINDOW_MS = 10 * 60_000L;
+    static final long PAUSE_MS = 30 * 60_000L;
 
     /** Null until the first start that names a helper; then registered for the rest of the process. */
     private static ContentObserver observer;
@@ -50,7 +54,9 @@ final class KeepKeyServices {
     private static Runnable task;
     /** The helpers' class names from the last start; read by the check thread. */
     private static volatile List<String> wanted = Collections.emptyList();
-    private static final Budget budget = new Budget(MAX_READDS, WINDOW_MS);
+    private static final Budget budget = new Budget(MAX_READDS, WINDOW_MS, PAUSE_MS);
+    /** A refused read or write is logged once per process, not on every change. */
+    private static boolean failureLogged;
 
     private KeepKeyServices() {
     }
@@ -109,7 +115,7 @@ final class KeepKeyServices {
     /** One check, off the main thread like ServiceRepair's writes: puts back what the list lost, within the budget. */
     private static synchronized void keep(Context app) {
         List<String> classes = new ArrayList<>(wanted);
-        if (classes.isEmpty() || budget.spent()) return;
+        if (classes.isEmpty() || budget.pausedAt(SystemClock.elapsedRealtime())) return;
         try {
             // guard_off_in_standby: HomeKeyService steps off the list itself while the screen is off and GuardKeep
             // puts it back when the screen lights (TCL tc8000); putting it back sooner would undo that.
@@ -123,16 +129,23 @@ final class KeepKeyServices {
             // Nothing missing, which is also what the change from our own write finds: no write, no loop.
             if (lost.isEmpty()) return;
             if (!budget.take(SystemClock.elapsedRealtime())) {
+                // Logged once per pause: during it keep() returns before reading anything.
                 Log.w(TAG, "keep_key_services: the accessibility list lost a helper again after " + MAX_READDS
-                        + " put-backs in 10 minutes; leaving it to the firmware until Home's process restarts");
+                        + " put-backs in 10 minutes; pausing for 30 minutes");
+                // Nothing may change in the meantime, so look again when the pause is over.
+                main.postDelayed(KeepKeyServices::schedule, PAUSE_MS);
                 return;
             }
-            if (!Settings.Secure.putString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-                    withHelpers(list, app.getPackageName(), lost))) return;
+            // Only over the list just read: a firmware write since then stays, and its change calls us again.
+            if (!ServiceRepair.replaceList(cr, list, withHelpers(list, app.getPackageName(), lost))) return;
             Settings.Secure.putInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 1);
             Log.i(TAG, "keep_key_services: put " + lost + " back on the accessibility list");
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException e) {
             // The settings are the system's; a refusal leaves the helpers as they were.
+            if (!failureLogged) {
+                failureLogged = true;
+                Log.w(TAG, "keep_key_services: cannot read or write the accessibility settings: " + e);
+            }
         }
     }
 
@@ -189,32 +202,44 @@ final class KeepKeyServices {
         return (name.startsWith(".") ? pkg + name : name).equals(cls);
     }
 
-    /** At most {@code max} re-adds in any {@code windowMs}; the first one over that stops them for good. */
+    /**
+     * At most {@code max} re-adds in any {@code windowMs}. The first one over that starts a pause of {@code pauseMs},
+     * in which nothing is allowed; after it the count starts again from an empty window.
+     */
     static final class Budget {
         private final int max;
         private final long windowMs;
+        private final long pauseMs;
         private final ArrayDeque<Long> times = new ArrayDeque<>();
-        private boolean spent;
+        private boolean paused;
+        private long pausedUntil;
 
-        Budget(int max, long windowMs) {
+        Budget(int max, long windowMs, long pauseMs) {
             this.max = max;
             this.windowMs = windowMs;
+            this.pauseMs = pauseMs;
         }
 
-        /** True, and counted, when one more re-add at {@code now} stays within the budget. */
+        /** True, and counted, when one more re-add at {@code now} fits; false during a pause, or when it starts one. */
         boolean take(long now) {
-            if (spent) return false;
+            if (pausedAt(now)) return false;
+            if (paused) {
+                paused = false;
+                times.clear();
+            }
             while (!times.isEmpty() && now - times.peekFirst() >= windowMs) times.pollFirst();
             if (times.size() >= max) {
-                spent = true;
+                paused = true;
+                pausedUntil = now + pauseMs;
                 return false;
             }
             times.addLast(now);
             return true;
         }
 
-        boolean spent() {
-            return spent;
+        /** True while a pause started by {@link #take} has not run out at {@code now}. */
+        boolean pausedAt(long now) {
+            return paused && now < pausedUntil;
         }
     }
 }

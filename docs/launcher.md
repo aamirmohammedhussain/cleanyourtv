@@ -61,10 +61,14 @@ The launcher's own page has these rows, top to bottom:
   transitions; they may use more memory) once animations are on.
 - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
   time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
-- **Wireless debugging at startup**, only when the launcher holds `WRITE_SECURE_SETTINGS`
-  (`RESTORE_KEY_SERVICES=1` at install): On turns Wireless debugging back on once after every restart, from
-  the next one; Off stops that without switching debugging off. It wins over `adb_wifi_on_boot` in
-  `config.xml` or the theme, and a theme push leaves it; Follow theme clears it.
+- **Wireless debugging at startup**, only on Android 11 or later and when the launcher holds
+  `WRITE_SECURE_SETTINGS` (`RESTORE_KEY_SERVICES=1` at install): On turns Wireless debugging back on once after
+  every restart, from the next one; Off stops that without switching debugging off, even during a wait already
+  under way. It waits up to 2 minutes for Wi-Fi and checks 3 s after each write, 3 tries in all: Android switching
+  it off later (a Wi-Fi roam) is not retried, and a boot whose Home was killed during the wait is skipped. This is
+  Wireless debugging (TLS, a random port, paired hosts only), not `adb tcpip 5555`, but it is still a debug port
+  open on the network, for the weeks a TV is being set up. It wins over `adb_wifi_on_boot` in `config.xml` or the
+  theme, and a theme push leaves it; Follow theme clears it.
 - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
   clears them too.
 - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings

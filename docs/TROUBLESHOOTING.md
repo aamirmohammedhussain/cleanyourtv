@@ -927,8 +927,10 @@ running back on the list the next time it starts; a helper turned off in Setting
   `name:enabled_accessibility_services pkg:com.sdt.projector.observer value:`. On such a set, name the
   helpers in `keep_key_services` (`config.xml` or a theme, e.g. `["HomeKeyService", "InputKeyService"]`),
   with `WRITE_SECURE_SETTINGS` granted as above: while Home's process runs, a helper that leaves the list is
-  put back at its end about a second later, other apps' services left in place, at most 5 times in 10
-  minutes. Each put-back is one `TvHome.KeepKeys` line in `logcat`:
+  put back at its end about a second later, other apps' services left in place; it writes only over the list
+  it read, so a write the firmware makes in between is kept and checked again. At most 5 put-backs in any 10
+  minutes: one more pauses it for 30 minutes (one warning in `logcat`), then it starts counting again. Each
+  put-back is one `TvHome.KeepKeys` line in `logcat`:
 
   ```sh
   tools/tv.py "dumpsys settings | grep 'name:enabled_accessibility_services'"

@@ -37,6 +37,8 @@ shell, so close it when you are done:
      say that port is closed.
    - After the reboot the old number reads closed either way: Wireless debugging takes a new port each
      time it starts.
+   - With `adb_wifi_on_boot` on, the launcher turns Wireless debugging back on at every boot: switch
+     **Wireless debugging at startup** Off in Launcher settings first.
 2. Reboot the TV, then confirm the port is gone from your computer:
    `python3 tools/adb-closed.py <tv ip>` must say the port is closed.
    - Wireless debugging must still be off in Developer options, and `adb mdns services` must list no
