@@ -173,7 +173,8 @@
          runs: on the Skyworth Google TV stick in a Wanbo X5 Pro projector (HP4609, Google TV 14, firmware C3.2.5),
          com.sdt.projector.observer empties it about 4 s after every boot, and the Settings gear and the other helper
          keys stop until the helpers are enabled again over ADB. About a second after such a change Home puts a missing
-         helper back, other apps' services left in place, at most 5 times in 10 minutes. Different from
+         helper back, other apps' services left in place, writing only over the list it read. At most 5 put-backs in
+         any 10 minutes: one more pauses it for 30 minutes, after which it starts counting again. Different from
          restore_key_services, which puts the helpers back once, when Home starts after a force stop. A helper named
          here comes back even when turned off in Settings while Home runs: take it out of this list first. Needs
          WRITE_SECURE_SETTINGS, granted by RESTORE_KEY_SERVICES=1 (-RestoreKeyServices on Windows). Also
