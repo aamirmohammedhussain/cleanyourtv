@@ -219,7 +219,10 @@
          switches to that TV input, e.g. scan:227:input:com.tcl.tvinput/.passthroughinput.TvPassThroughService/HW1413744640
          for HDMI 3 on a TCL Smart TV Pro; the ids are in `tools/tv.py 'dumpsys tv_input'` (hdmi_port=N under
          TvInputHardwareInfo). An action word in place of a package runs that action instead: back, home, recents,
-         mute (toggles the sound, with the TV's volume bar), sleep (standby, Android 9 and later), screensaver (the
+         mute (toggles the sound, with the TV's volume bar),
+         volume_up and volume_down (one step each, with the volume bar, repeating while the button is held, so a
+         remote whose volume keys arrive as other codes works: a ruwido BLE remote's are KEYCODE_F10:volume_up and
+         KEYCODE_F11:volume_down; no hold: entry on the same button), sleep (standby, Android 9 and later), screensaver (the
          one chosen in the TV's settings, or the launcher's clock), settings, wifi or ignore (swallows the button: it
          does nothing, for a shortcut pressed by accident; find its scancode with `tools/tv.py 'getevent -t'`);
          e.g. KEYCODE_PROG_YELLOW:mute, scan:586:ignore and hold:KEYCODE_PROG_YELLOW:sleep. "package/.Activity" opens that activity instead of the app's launcher

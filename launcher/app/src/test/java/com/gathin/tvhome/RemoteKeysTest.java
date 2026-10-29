@@ -136,7 +136,7 @@ public class RemoteKeysTest {
         assertEquals("mute", keys.get(190));
         assertEquals("screensaver", keys.get(195));
         assertEquals("sleep", parseHold("hold:190:sleep").get(190));
-        for (String word : new String[] {"back", "home", "recents", "mute", "sleep", "screensaver", "settings", "wifi", "ignore"}) {
+        for (String word : new String[] {"back", "home", "recents", "mute", "volume_up", "volume_down", "sleep", "screensaver", "settings", "wifi", "ignore"}) {
             assertTrue(word, RemoteKeys.isAction(word));
         }
         assertFalse(RemoteKeys.isAction("com.netflix.ninja"));
@@ -186,6 +186,22 @@ public class RemoteKeysTest {
             for (Runnable hold : new ArrayList<>(holds)) hold.run();
             holds.clear();
         }
+    }
+
+    @Test public void volumeWordsRepeatWhileHeld() {
+        assertTrue(RemoteKeys.isVolume("volume_up"));
+        assertTrue(RemoteKeys.isVolume("volume_down"));
+        assertFalse(RemoteKeys.isVolume("mute"));
+        assertFalse(RemoteKeys.isVolume(null));
+        assertEquals("volume_up", parse("140:volume_up").get(140));   // KEYCODE_F10
+        assertEquals(0, RemoteKeys.globalAction("volume_up", 34));
+        // Every DOWN steps, repeats included (each has its own event time); the other service's copy does not.
+        Remote remote = new Remote();
+        assertTrue(remote.presses.step("5:140:68", 1000));
+        assertFalse(remote.presses.step("5:140:68", 1000));
+        assertTrue(remote.presses.step("5:140:68", 1400));
+        assertTrue(remote.presses.step("5:140:68", 1450));
+        assertTrue(remote.presses.step("5:141:87", 1450));   // another button keeps its own count
     }
 
     @Test public void chordedKeysKeepTheirOwnHold() {
