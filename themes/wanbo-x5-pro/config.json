@@ -1,0 +1,46 @@
+{
+  "dock_apps": [
+    "org.videolan.vlc",
+    "com.netflix.ninja",
+    "com.google.android.youtube.tv",
+    "com.amazon.amazonvideo.livingroom"
+  ],
+  "settings_key_keycodes": [
+    83
+  ],
+  "app_keys": [
+    "265:com.netflix.ninja",
+    "266:com.google.android.youtube.tv",
+    "138:com.amazon.amazonvideo.livingroom",
+    "scan:393:org.videolan.vlc",
+    "KEYCODE_F10:volume_up",
+    "KEYCODE_F11:volume_down",
+    "KEYCODE_GUIDE:settings",
+    "KEYCODE_CHANNEL_UP:volume_up",
+    "KEYCODE_CHANNEL_DOWN:volume_down"
+  ],
+  "reduced_motion": false,
+  "focus_overshoot": false,
+  "ambient_glow": false,
+  "advanced_effects": false,
+  "module_cards": false,
+  "show_stats": false,
+  "sky_intensity": 0,
+  "fade_rows": false,
+  "home_idle_clock_minutes": 0,
+  "background_color": "#070A14",
+  "wallpaper": true,
+  "wallpaper_true_color": true,
+  "glass_style": "rim",
+  "app_glow": false,
+  "tile_menu": true,
+  "dock_row": false,
+  "dock_title": false,
+  "dock_band": false,
+  "columns": 5,
+  "keep_key_services": [
+    "HomeKeyService",
+    "InputKeyService"
+  ],
+  "grid_top": 32
+}
