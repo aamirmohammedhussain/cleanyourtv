@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
  * so both may call handle() for one event, and it answers each press once.
  * A target of "input:<input id>" switches to that TV input (an HDMI port) instead of opening an app, a target
  * of "inputs" opens the input switcher, for a remote whose source button sends a key Android does not map,
- * one of the action words (back, home, recents, mute, sleep, screensaver, settings, wifi) does that action, and
+ * one of the action words (back, home, recents, mute, volume_up, volume_down, sleep, screensaver, settings, wifi)
+ * does that action, and
  * "package/.Activity" opens that activity rather than the app's launcher entry (an add-on's quick bar, say).
  */
 final class RemoteKeys {
@@ -195,6 +196,13 @@ final class RemoteKeys {
             });
         }
         String button = event.getDeviceId() + ":" + event.getKeyCode() + ":" + event.getScanCode();
+        if (isVolume(app)) {
+            // volume_up / volume_down act on every DOWN, auto-repeats included, so holding the button keeps changing
+            // the volume as a volume key does (a ruwido BLE remote sends Vol+/Vol- as F10/F11). Nothing on the UP,
+            // and no hold: entry for the same button.
+            if (event.getAction() == KeyEvent.ACTION_DOWN && presses.step(button, event.getEventTime())) launch(ctx, app);
+            return true;
+        }
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             presses.down(button, event.getEventTime(), event.getRepeatCount(), holdApp, target -> launch(ctx, target));
         } else if (event.getAction() == KeyEvent.ACTION_UP) {
@@ -217,7 +225,7 @@ final class RemoteKeys {
         }
 
         private static final class Press {
-            long downAt = -1, upAt = -1;
+            long downAt = -1, upAt = -1, stepAt = -1;
             boolean fired;
             Runnable hold;
         }
@@ -244,6 +252,14 @@ final class RemoteKeys {
                 open.accept(holdApp);
             };
             timer.post(press.hold, HOLD_MS);
+        }
+
+        /** True once per DOWN of a volume word's button, repeats included: false for the other service's copy. */
+        boolean step(String button, long eventTime) {
+            Press press = buttons.computeIfAbsent(button, b -> new Press());
+            if (press.stepAt == eventTime) return false;
+            press.stepAt = eventTime;
+            return true;
         }
 
         void up(String button, long eventTime, long downTime, boolean canceled, String app, String holdApp,
@@ -294,12 +310,17 @@ final class RemoteKeys {
      */
     static boolean isAction(String target) {
         switch (target) {
-            case "back": case "home": case "recents": case "mute": case "sleep":
+            case "back": case "home": case "recents": case "mute": case "volume_up": case "volume_down": case "sleep":
             case "screensaver": case "settings": case "wifi": case "ignore":
                 return true;
             default:
                 return false;
         }
+    }
+
+    /** volume_up or volume_down: repeated while the button is held, unlike every other target. */
+    static boolean isVolume(String target) {
+        return "volume_up".equals(target) || "volume_down".equals(target);
     }
 
     /** Runs an action word; false for an app or an input. Needs no permission the launcher does not already have. */
@@ -316,6 +337,13 @@ final class RemoteKeys {
                 AudioManager audio = ctx.getSystemService(AudioManager.class);
                 if (audio != null) audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,
                         AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI);
+                break;
+            case "volume_up":
+            case "volume_down":
+                // One step on the same stream, with the TV's volume bar, as a remote's volume key would.
+                AudioManager stream = ctx.getSystemService(AudioManager.class);
+                if (stream != null) stream.adjustStreamVolume(AudioManager.STREAM_MUSIC, "volume_up".equals(target)
+                        ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
                 break;
             case "screensaver":
                 // The screensaver chosen in the TV's settings, through the system's "start now" shortcut; the
